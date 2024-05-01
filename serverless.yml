@@ -1,0 +1,28 @@
+org: giovannibranco
+app: cadastrar-alunos-csv-lambda
+service: cadastrar-alunos-csv-lambda
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+
+functions:
+  simularUploadCsv:
+    handler: index.simularUploadCsv
+    events:
+      - httpApi:
+          path: /alunos/batch
+          method: POST
+  cadastrarAlunos:
+    handler: index.cadastrarAlunos
+    events:
+      - s3:
+          bucket: alunos-csv-local
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .csv
+
+plugins:
+  - serverless-offline
+  - serverless-s3-local
