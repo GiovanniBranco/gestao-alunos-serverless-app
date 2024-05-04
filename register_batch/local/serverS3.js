@@ -3,6 +3,8 @@ const {
   PutObjectCommand,
   GetObjectCommand,
 } = require("@aws-sdk/client-s3");
+const { readFile } = require("fs/promises");
+const { join } = require("path");
 
 const getClientS3Local = () => {
   return new S3Client({
@@ -18,10 +20,14 @@ const getClientS3Local = () => {
 const executeUploadBucket = async () => {
   const client = getClientS3Local();
 
+  const fileName = "cadastrar_alunos.csv";
+  const pathFile = join(__dirname, fileName);
+  const csvData = await readFile(pathFile, "utf-8");
+
   const executeUpload = new PutObjectCommand({
     Bucket: "alunos-csv-local",
-    Key: "teste.csv",
-    Body: Buffer.from("12345"),
+    Key: fileName,
+    Body: csvData,
   });
 
   await client.send(executeUpload);
@@ -42,33 +48,7 @@ const getDataCsvFile = async (bucketName, fileKey) => {
   return dataCsv;
 };
 
-module.exports.simularUploadCsv = async (event) => {
-  try {
-    await executeUploadBucket();
-    console.log("simule aqui o upload do arquivo");
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        mensagem: "Simulando upload de arquivo...",
-      }),
-    };
-  } catch (error) {
-    return {
-      statusCode: error.statusCode || 500,
-      body: JSON.stringify(error),
-    };
-  }
-};
-
-module.exports.cadastrarAlunos = async (event) => {
-  console.log("função lamba executada pelo evento do bucker S3");
-  const s3Event = event.Records[0].s3;
-
-  const bucket = s3Event.bucket.name;
-  const fileKey = decodeURIComponent(s3Event.object.key.replace(/\+/g, ""));
-
-  const fileData = await getDataCsvFile(bucket, fileKey);
-
-  console.log(fileData);
+module.exports = {
+  executeUploadBucket,
+  getDataCsvFile,
 };

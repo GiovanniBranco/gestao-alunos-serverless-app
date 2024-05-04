@@ -3,26 +3,62 @@ app: cadastrar-alunos-csv-lambda
 service: cadastrar-alunos-csv-lambda
 frameworkVersion: "3"
 
+resources:
+  extensions:
+    S3BuckerAlunosCsv:
+      Properties:
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - POST
+                - PUT
+                - GET
+                - HEAD
+              AllowedOrigins:
+                - "*"
+              AllowedHeaders:
+                - "*"
+
 provider:
   name: aws
   runtime: nodejs18.x
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+          Resource:
+            - arn:aws:s3:::alunos-csv/*
 
 functions:
-  simularUploadCsv:
-    handler: index.simularUploadCsv
+  registerStudents:
+    handler: register_batch/aws/index.registerStudents
+    events:
+      - s3:
+          bucket: alunos-csv
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .csv
+
+  uploadCsvSimulated:
+    handler: register_batch/local/index.uploadCsvSimulated
     events:
       - httpApi:
           path: /alunos/batch
           method: POST
-  cadastrarAlunos:
-    handler: index.cadastrarAlunos
+
+  register_students_local:
+    handler: register_batch/local/index.registerStudents
     events:
       - s3:
           bucket: alunos-csv-local
           event: s3:ObjectCreated:*
           rules:
             - suffix: .csv
+    enabled: false
 
 plugins:
   - serverless-offline
   - serverless-s3-local
+  - serverless-disable-functions
